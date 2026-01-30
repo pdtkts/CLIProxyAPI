@@ -215,6 +215,11 @@ func (s *FileTokenStore) readAuthFile(path, baseDir string) (*cliproxyauth.Auth,
 		return nil, fmt.Errorf("stat file: %w", err)
 	}
 	id := s.idFor(path, baseDir)
+	disabled, _ := metadata["disabled"].(bool)
+	status := cliproxyauth.StatusActive
+	if disabled {
+		status = cliproxyauth.StatusDisabled
+	}
 
 	// Calculate NextRefreshAfter from expires_at (20 minutes before expiry)
 	var nextRefreshAfter time.Time
@@ -222,13 +227,6 @@ func (s *FileTokenStore) readAuthFile(path, baseDir string) (*cliproxyauth.Auth,
 		if expiresAt, err := time.Parse(time.RFC3339, expiresAtStr); err == nil {
 			nextRefreshAfter = expiresAt.Add(-20 * time.Minute)
 		}
-	}
-
-	// Check disabled status
-	disabled, _ := metadata["disabled"].(bool)
-	status := cliproxyauth.StatusActive
-	if disabled {
-		status = cliproxyauth.StatusDisabled
 	}
 
 	auth := &cliproxyauth.Auth{
